@@ -2,6 +2,7 @@
 
 $_lang['area_admintools_main'] = 'Main';
 $_lang['area_admintools_authorization'] = 'Authorization';
+$_lang['area_admintools_permissions'] = 'Permissions';
 $_lang['setting_admintools_favorites_icon'] = 'Favorite element icon';
 $_lang['setting_admintools_favorites_icon_desc'] = 'An icon to replace standart icon. For example, "icon-star".';
 $_lang['setting_admintools_remember_system_settings'] = 'Remember system settings filters';
@@ -12,8 +13,8 @@ $_lang['setting_admintools_enable_elements_log'] = 'Enable the log of elements';
 $_lang['setting_admintools_enable_elements_log_desc'] = 'Add a button to the elements tree toolbar that opens recently edited elements.';
 $_lang['setting_admintools_enable_favorite_elements'] = 'Enable the favorite elements';
 $_lang['setting_admintools_enable_favorite_elements_desc'] = 'Enable the favorite elements.';
-$_lang['setting_admintools_clear_only resource_cache'] = 'Clear only resource cache';
-$_lang['setting_admintools_clear_only resource_cache_desc'] = 'Only the resource cache is clearing on saving resource to DB, not the site cache.';
+$_lang['setting_admintools_clear_only_resource_cache'] = 'Clear only resource cache';
+$_lang['setting_admintools_clear_only_resource_cache_desc'] = 'Only the resource cache is clearing on saving resource to DB, not the site cache.';
 $_lang['setting_admintools_hide_component_description'] = 'Hide component description';
 $_lang['setting_admintools_hide_component_description_desc'] = 'Hide component description at menu "Extras".';
 $_lang['setting_admintools_email_authorization'] = 'Backend authorization via email';
@@ -28,3 +29,7 @@ $_lang['setting_admintools_animate_menu'] = 'Menu animation';
 $_lang['setting_admintools_animate_menu_desc'] = 'Animates the main menu.';
 $_lang['setting_admintools_template_resource_relationship'] = 'Template and resources relationship';
 $_lang['setting_admintools_template_resource_relationship_desc'] = 'Adds a resources tab to the template form and a link to the template to the resource form.';
+$_lang['setting_admintools_alternative_permissions'] = 'Alternate permissions';
+$_lang['setting_admintools_alternative_permissions_desc'] = 'Alternate resource permissions for frontend users.';
+$_lang['setting_admintools_plugins_events'] = 'Enable plugin interface';
+$_lang['setting_admintools_plugins_events_desc'] = 'Added a button to show the plugin table.';

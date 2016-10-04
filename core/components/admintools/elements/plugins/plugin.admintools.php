@@ -10,12 +10,15 @@ if ($AdminTools instanceof AdminTools) {
             if ($modx->user->id) $AdminTools->initialize();
             break;
         case 'OnDocFormSave':
-            if ($modx->getOption('admintools_clear_only resource_cache',null,false)) {
+            if ($modx->getOption('admintools_clear_only_resource_cache',null,false)) {
                 if ($modx->event->params['mode'] != 'upd') {
                     return;
                 }
                 if ($resource->get('syncsite')) {
                     $AdminTools->clearResourceCache($resource);
+                }
+                if (!empty($_POST['createCache'])) {
+                    $AdminTools->createResourceCache($resource->uri);
                 }
             }
             break;
@@ -38,6 +41,9 @@ if ($AdminTools instanceof AdminTools) {
             if ($modx->user->isAuthenticated($modx->context->get('key')) && (!$modx->user->active || $modx->user->Profile->blocked)) {
                 $modx->runProcessor('security/logout');
             }
+            if ($modx->getOption('admintools_alternative_permissions', null, false) && !$AdminTools->hasPermissions()){
+                $modx->sendUnauthorizedPage();
+            }
             break;
         case 'OnTempFormPrerender':
             if ($modx->getOption('admintools_template_resource_relationship', null, true)) {
@@ -45,17 +51,67 @@ if ($AdminTools instanceof AdminTools) {
             }
             break;
         case 'OnDocFormPrerender':
+            $_html = array();
             if ($modx->getOption('admintools_template_resource_relationship', null, true)) {
-                $_html = '<script>
-	Ext.onReady(function() {
-        setTimeout(function(){
+                $_html['tpl_res_relationship'] = '
             var tmpl = Ext.getCmp("modx-resource-template");
-            tmpl.label.update(" <a href=\"?a=element/template/update&id=" + tmpl.getValue() + "\">" + tmpl.label.dom.innerText + "</a>");
-        }, 200);
-    });
-</script>';
-                $modx->controller->addHtml($_html);
+            if (tmpl.getValue()) tmpl.label.update(_("resource_template") + "&nbsp;&nbsp;<a href=\"?a=element/template/update&id=" + tmpl.getValue() + "\"><i class=\"icon icon-external-link\"></i></a>");';
             }
+            if ($modx->getOption('admintools_clear_only_resource_cache', null, true) && $resource instanceof modResource) {
+                $_html['create_resource_cache'] = '
+            var cb = Ext.create({
+                xtype: "xcheckbox",
+                boxLabel: _("admintools_create_resource_cache"),
+                description: _("admintools_create_resource_cache_help"),
+                hideLabel: true,
+                name: "createCache",
+                id: "createCache",
+                checked: false
+            });
+            Ext.getCmp("modx-page-settings-right-box-right").insert(2,cb);
+            Ext.getCmp("modx-page-settings-right-box-left").add(Ext.getCmp("modx-resource-uri-override"));
+            Ext.getCmp("modx-panel-resource").on("success", function(o){
+                if (o.result.object.createCache != 0) {
+                    cb.setValue(true);
+                }
+            });';
+            }
+            $output = '';
+            if (!empty($_html)) {
+            $output .= '
+    Ext.onReady(function() {
+        setTimeout(function(){' . implode("\n", $_html) . '
+        }, 200);
+    });';
+            }
+            if ($modx->getOption('admintools_alternative_permissions', null, true) && $modx->hasPermission('access_permissions')) {
+                $modx->controller->addLastJavascript($AdminTools->getOption('jsUrl') . 'mgr/permissions.js');
+                $output .= '
+    Ext.ComponentMgr.onAvailable("modx-resource-tabs", function() {
+		this.on("beforerender", function() {
+			this.add({
+				title: _("admintools_permissions"),
+				border: false,
+				items: [{
+					layout: "anchor",
+					border: false,
+					items: [{
+						html: _("admintools_permissions_desc"),
+						border: false,
+						bodyCssClass: "panel-desc"
+					}, {
+						xtype: "admintools-grid-permissions",
+						anchor: "100%",
+						cls: "main-wrapper",
+						resource: ' . $id . '
+					}]
+				}]
+			});
+		});
+	});
+';
+            }
+            if (!empty($output)) $modx->controller->addHtml('<script type="text/javascript">' . $output . '</script>');
             break;
     }
 }

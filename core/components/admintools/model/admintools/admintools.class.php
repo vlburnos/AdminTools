@@ -102,6 +102,10 @@ class AdminTools {
                         $_css .= "\t#modx-navbar ul.modx-subnav li:hover ul.modx-subsubnav {opacity: 1; visibility: visible;} \n";
                     }
                     if ($_css) $this->modx->controller->addHtml("<style type=\"text/css\">\n". $_css ."</style>");
+                    // Plugins
+                    if ($this->modx->getOption('admintools_plugins_events', null, true)) {
+                        $this->modx->controller->addLastJavascript($this->config['jsUrl'] . 'mgr/plugins.js');
+                    }
                     // taskpanel
                     /*
                     if ($this->modx->getOption('admintools_enable_taskpanel',null,false)) {
@@ -255,7 +259,6 @@ class AdminTools {
 
     /**
      * @param modResource $resource
-     * @return modCacheManager
      */
     public function clearResourceCache(&$resource) {
 //        $resource->clearCache();
@@ -400,6 +403,8 @@ class AdminTools {
         $query->select('id');
         $id = $this->modx->getValue($query->prepare());
         if (!empty($id)) {
+//            $this->modx->addEventListener('OnManagerPageBeforeRender', $id);
+//            $this->modx->addEventListener('OnManagerAuthentication', $id);
             $this->modx->eventMap['OnManagerPageBeforeRender'][$id] = $id;
             $this->modx->eventMap['OnManagerAuthentication'][$id] = $id;
         } else {
@@ -422,6 +427,65 @@ class AdminTools {
 
         return $error_message;
     }
+
+    /**
+     * @param int $rid Resource id
+     * @return bool
+     */
+    public function hasPermissions($rid = 0) {
+        //TODO-sergant  Сделать map файл.
+        if ($rid == 0) $rid = $this->modx->resource->get('id');
+        $user = $this->modx->user;
+        $userId = $this->modx->user->get('id');
+        $q = $this->modx->newQuery('adminToolsPermissions');
+        $q->setClassAlias('Permissions');
+//        $q->leftJoin('modUserProfile','User', 'Permissions.principal = User.internalKey AND Permissions.principal_type = "usr"');
+        $q->leftJoin('modUserGroup','Group', 'Permissions.principal = Group.id AND Permissions.principal_type = "grp"');
+        $q->select('Permissions.*, Group.name as groupname');
+        $q->where(array(
+            'Permissions.rid' => $rid,
+        ));
+        $q->sortby('Permissions.weight', 'ASC');
+        $q->sortby('Permissions.priority', 'ASC');
+        $tstart = microtime(true);
+        if ($q->prepare() && $q->stmt->execute()) {
+        	$this->modx->queryTime += microtime(true) - $tstart;
+        	$this->modx->executedQueries++;
+            $permissions = $q->stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        $allow = true;
+        if (!empty($permissions)) {
+            foreach ($permissions as $permission) {
+                switch ($permission['principal_type']) {
+                    case 'all':
+                        $allow = (bool) $permission['status'];
+                        break;
+                    case 'gst':
+                        if ($userId == 0){
+                            $allow = (bool) $permission['status'];
+                        }
+                        break;
+                    case 'grp':
+                        if ($userId && $user->isMember($permission['groupname'])){
+                            $allow = (bool) $permission['status'];
+                        }
+                        break;
+                    case 'usr':
+                        if ($userId  == $permission['principal']){
+                            $allow = (bool) $permission['status'];
+                        }
+                        break;
+                }
+            }
+        }
+        return $allow;
+    }
+    public function createResourceCache($uri = '/') {
+        $siteUrl = $this->modx->getOption('site_url');
+        /** @var modRestCurlClient $client */
+        $client = $this->modx->getService('rest.modRestCurlClient');
+        $result = $client->request($siteUrl, $uri, 'POST');
+    }
 }
 
 /**
@@ -432,7 +496,7 @@ class atCacheManager extends modCacheManager
 {
     public function refresh(array $providers = array(), array &$results = array())
     {
-        if ($this->modx->getOption('admintools_clear_only resource_cache',null,false) && !empty($this->modx->_clearResourceCache)) {
+        if ($this->modx->getOption('admintools_clear_only_resource_cache',null,false) && !empty($this->modx->_clearResourceCache)) {
             $this->modx->_clearResourceCache = false;
             unset($providers['resource']);
             $this->modx->cacheManager = null;
